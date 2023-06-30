@@ -23,23 +23,24 @@ def generate_launch_description():
     )
 
     zed_apriltag_node = Node(
-        package="apriltag_ros",
-        executable="apriltag_ros_continuous_detector_node",
+        package="apriltag_ros2",
+        executable="apriltag_ros2_continuous_detector_node",
         name="zed_apriltag_node",
         parameters=[
             {"size": 0.75},
             {"publish_tag_detections_image": True},
-            {"frame_id": "zed_left_camera_frame"},
+            {"camera_frame_id": "zed_left_camera_frame"},
+            {"camera_base_frame_id": "base_link"},
             {
                 os.path.join(
-                    get_package_share_directory("apriltag_ros"),
+                    get_package_share_directory("apriltag_ros2"),
                     "config",
                     "settings.param.yaml",
                 )
             },
             {
                 os.path.join(
-                    get_package_share_directory("apriltag_ros"),
+                    get_package_share_directory("apriltag_ros2"),
                     "config",
                     "tags.param.yaml",
                 )
@@ -74,23 +75,24 @@ def generate_launch_description():
     )
 
     zed2_apriltag_node = Node(
-        package="apriltag_ros",
-        executable="apriltag_ros_continuous_detector_node",
+        package="apriltag_ros2",
+        executable="apriltag_ros2_continuous_detector_node",
         name="zed2_apriltag_node",
         parameters=[
             {"size": 0.75},
             {"publish_tag_detections_image": True},
-            {"frame_id": "zed2_left_camera_frame"},
+            {"camera_frame_id": "zed2_left_camera_frame"},
+            {"camera_base_frame_id": "base_link"},
             {
                 os.path.join(
-                    get_package_share_directory("apriltag_ros"),
+                    get_package_share_directory("apriltag_ros2"),
                     "config",
                     "settings.param.yaml",
                 )
             },
             {
                 os.path.join(
-                    get_package_share_directory("apriltag_ros"),
+                    get_package_share_directory("apriltag_ros2"),
                     "config",
                     "tags.param.yaml",
                 )
@@ -108,7 +110,7 @@ def generate_launch_description():
         name="zed2_filter_node",
         namespace="zed2_filter",
         parameters=[
-            {"leaf_size": 0.005},
+            {"leaf_size": 0.008},
         ],
         remappings=[
             ("input", "/zed2/zed_node/point_cloud/cloud_registered"),
@@ -131,23 +133,24 @@ def generate_launch_description():
     )
 
     d435_apriltag_node = Node(
-        package="apriltag_ros",
-        executable="apriltag_ros_continuous_detector_node",
+        package="apriltag_ros2",
+        executable="apriltag_ros2_continuous_detector_node",
         name="d435_apriltag_node",
         parameters=[
             {"size": 0.75},
             {"publish_tag_detections_image": True},
-            {"frame_id": "D435_color_frame"},
+            {"camera_frame_id": "D435_color_frame"},
+            {"camera_base_frame_id": "D435_link"},
             {
                 os.path.join(
-                    get_package_share_directory("apriltag_ros"),
+                    get_package_share_directory("apriltag_ros2"),
                     "config",
                     "settings.param.yaml",
                 )
             },
             {
                 os.path.join(
-                    get_package_share_directory("apriltag_ros"),
+                    get_package_share_directory("apriltag_ros2"),
                     "config",
                     "tags.param.yaml",
                 )
