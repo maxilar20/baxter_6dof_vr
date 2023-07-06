@@ -71,7 +71,10 @@ def generate_launch_description():
                 get_package_share_directory("zed_wrapper"), "launch", "zed2.launch.py"
             )
         ),
-        launch_arguments={"publish_tf": "false", "zed_id": "0"}.items(),
+        launch_arguments={
+            "zed_id": "0",
+            "base_frame": "zed2_base_frame",
+        }.items(),
     )
 
     zed2_apriltag_node = Node(
@@ -82,7 +85,7 @@ def generate_launch_description():
             {"size": 0.75},
             {"publish_tag_detections_image": True},
             {"camera_frame_id": "zed2_left_camera_frame"},
-            {"camera_base_frame_id": "base_link"},
+            {"camera_base_frame_id": "map"},
             {
                 os.path.join(
                     get_package_share_directory("apriltag_ros2"),
@@ -175,6 +178,13 @@ def generate_launch_description():
         ],
     )
 
+    table_tf = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        name="table_tf",
+        arguments=["0", "0", "0.9", "0", "-1.57", "0", "world", "table_0"],
+    )
+
     rviz2 = Node(
         package="rviz2",
         executable="rviz2",
@@ -207,6 +217,8 @@ def generate_launch_description():
     ld.add_action(d435_camera_launch)
     ld.add_action(d435_apriltag_node)
     ld.add_action(d435_filter)
+
+    ld.add_action(table_tf)
 
     ld.add_action(rviz2)
     ld.add_action(tcp_node)

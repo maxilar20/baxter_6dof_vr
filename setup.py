@@ -28,6 +28,8 @@ setup(
     license="TODO: License declaration",
     tests_require=["pytest"],
     entry_points={
-        "console_scripts": ["pose_to_tf = baxter_6dof_vr.pose_to_tf:main"],
+        "console_scripts": [
+            "pose_to_tf = baxter_6dof_vr.pose_to_tf:main",
+        ],
     },
 )
