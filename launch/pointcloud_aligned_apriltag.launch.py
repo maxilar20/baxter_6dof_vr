@@ -112,9 +112,7 @@ def generate_launch_description():
         executable="filter_voxel_grid_node",
         name="zed2_filter_node",
         namespace="zed2_filter",
-        parameters=[
-            {"leaf_size": 0.008},
-        ],
+        parameters=[{"leaf_size": 0.003}, {"filter_limit_min": -2.0}],
         remappings=[
             ("input", "/zed2/zed_node/point_cloud/cloud_registered"),
         ],
@@ -182,7 +180,7 @@ def generate_launch_description():
         package="tf2_ros",
         executable="static_transform_publisher",
         name="table_tf",
-        arguments=["0", "0", "0.9", "0", "-1.57", "0", "world", "table_0"],
+        arguments=["0", "0", "0.9", "0", "-1.57", "0", "world_absolute", "table_0"],
     )
 
     rviz2 = Node(
