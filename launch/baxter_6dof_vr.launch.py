@@ -6,6 +6,9 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.substitutions import FindPackageShare
 from ament_index_python.packages import get_package_share_directory
 
+from launch_ros.actions import ComposableNodeContainer
+from launch_ros.descriptions import ComposableNode
+
 
 import os
 
@@ -112,7 +115,21 @@ def generate_launch_description():
         executable="filter_voxel_grid_node",
         name="zed2_filter_node",
         namespace="zed2_filter",
-        parameters=[{"leaf_size": 0.003}, {"filter_limit_min": -2.0}],
+        parameters=[{"leaf_size": 0.005}, {"filter_limit_min": -2.0}],
+        remappings=[
+            ("input", "/zed2/zed_node/point_cloud/cloud_registered"),
+        ],
+    )
+
+    zed2_crop_filter = Node(
+        package="pcl_ros",
+        executable="filter_passthrough_node",
+        name="zed2_crop_filter_node",
+        namespace="zed2_filter",
+        parameters=[
+            {"keep_organized": True},
+            {"filter_min": -3.0},
+        ],
         remappings=[
             ("input", "/zed2/zed_node/point_cloud/cloud_registered"),
         ],
@@ -176,11 +193,56 @@ def generate_launch_description():
         ],
     )
 
-    table_tf = Node(
+    baxter_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("baxter_moveit_ros2"),
+                "launch",
+                "moveit_server.launch.py",
+            )
+        ),
+    )
+
+    baxter_apriltag_node = Node(
+        package="apriltag_ros2",
+        executable="apriltag_ros2_continuous_detector_node",
+        name="baxter_apriltag_node",
+        parameters=[
+            {"size": 0.75},
+            {"publish_tag_detections_image": True},
+            {"camera_frame_id": "right_hand_camera_gz"},
+            {"camera_base_frame_id": "world"},
+            {
+                os.path.join(
+                    get_package_share_directory("apriltag_ros2"),
+                    "config",
+                    "settings.param.yaml",
+                )
+            },
+            {
+                os.path.join(
+                    get_package_share_directory("apriltag_ros2"),
+                    "config",
+                    "tags.param.yaml",
+                )
+            },
+        ],
+        remappings=[
+            ("~/image_rect", "/cameras/right_hand_camera/image"),
+            ("~/camera_info", "/cameras/right_hand_camera/camera_info"),
+        ],
+    )
+
+    baxter_pose_tracker = Node(
+        package="baxter_6dof_vr",
+        executable="baxter_pose_tracker",
+        name="baxter_pose_tracker",
+    )
+
+    robot_tf = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
-        name="table_tf",
-        arguments=["0", "0", "0.9", "0", "-1.57", "0", "world_absolute", "table_0"],
+        arguments=["0", "0", "0.9", "0", "0", "0", "unity_world", "world"],
     )
 
     rviz2 = Node(
@@ -210,14 +272,18 @@ def generate_launch_description():
 
     ld.add_action(zed2_camera_launch)
     ld.add_action(zed2_apriltag_node)
-    ld.add_action(zed2_filter)
+    # ld.add_action(zed2_filter)
+    # ld.add_action(zed2_crop_filter)
 
-    ld.add_action(d435_camera_launch)
-    ld.add_action(d435_apriltag_node)
-    ld.add_action(d435_filter)
+    # ld.add_action(d435_camera_launch)
+    # ld.add_action(d435_apriltag_node)
+    # ld.add_action(d435_filter)
 
-    ld.add_action(table_tf)
+    ld.add_action(baxter_launch)
+    # ld.add_action(baxter_apriltag_node)
+    ld.add_action(baxter_pose_tracker)
 
+    ld.add_action(robot_tf)
     ld.add_action(rviz2)
     ld.add_action(tcp_node)
 
