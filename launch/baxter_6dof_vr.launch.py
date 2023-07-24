@@ -121,20 +121,6 @@ def generate_launch_description():
         ],
     )
 
-    zed2_crop_filter = Node(
-        package="pcl_ros",
-        executable="filter_passthrough_node",
-        name="zed2_crop_filter_node",
-        namespace="zed2_filter",
-        parameters=[
-            {"keep_organized": True},
-            {"filter_min": -3.0},
-        ],
-        remappings=[
-            ("input", "/zed2/zed_node/point_cloud/cloud_registered"),
-        ],
-    )
-
     d435_camera_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
@@ -198,39 +184,9 @@ def generate_launch_description():
             os.path.join(
                 get_package_share_directory("baxter_moveit_ros2"),
                 "launch",
-                "moveit_server.launch.py",
+                "servo_server.launch.py",
             )
         ),
-    )
-
-    baxter_apriltag_node = Node(
-        package="apriltag_ros2",
-        executable="apriltag_ros2_continuous_detector_node",
-        name="baxter_apriltag_node",
-        parameters=[
-            {"size": 0.75},
-            {"publish_tag_detections_image": True},
-            {"camera_frame_id": "right_hand_camera_gz"},
-            {"camera_base_frame_id": "world"},
-            {
-                os.path.join(
-                    get_package_share_directory("apriltag_ros2"),
-                    "config",
-                    "settings.param.yaml",
-                )
-            },
-            {
-                os.path.join(
-                    get_package_share_directory("apriltag_ros2"),
-                    "config",
-                    "tags.param.yaml",
-                )
-            },
-        ],
-        remappings=[
-            ("~/image_rect", "/cameras/right_hand_camera/image"),
-            ("~/camera_info", "/cameras/right_hand_camera/camera_info"),
-        ],
     )
 
     baxter_pose_tracker = Node(
@@ -268,20 +224,16 @@ def generate_launch_description():
 
     # ld.add_action(zed_camera_launch)
     # ld.add_action(zed_apriltag_node)
-    # ld.add_action(zed_filter)
 
     ld.add_action(zed2_camera_launch)
     ld.add_action(zed2_apriltag_node)
-    # ld.add_action(zed2_filter)
-    # ld.add_action(zed2_crop_filter)
 
     # ld.add_action(d435_camera_launch)
     # ld.add_action(d435_apriltag_node)
     # ld.add_action(d435_filter)
 
     ld.add_action(baxter_launch)
-    # ld.add_action(baxter_apriltag_node)
-    ld.add_action(baxter_pose_tracker)
+    # ld.add_action(baxter_pose_tracker)
 
     ld.add_action(robot_tf)
     ld.add_action(rviz2)
