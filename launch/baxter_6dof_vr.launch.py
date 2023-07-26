@@ -55,19 +55,6 @@ def generate_launch_description():
         ],
     )
 
-    zed_filter = Node(
-        package="pcl_ros",
-        executable="filter_voxel_grid_node",
-        name="zed_filter_node",
-        namespace="zed_filter",
-        parameters=[
-            {"leaf_size": 0.003},
-        ],
-        remappings=[
-            ("input", "/zed/zed_node/point_cloud/cloud_registered"),
-        ],
-    )
-
     zed2_camera_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
@@ -107,17 +94,6 @@ def generate_launch_description():
         remappings=[
             ("~/image_rect", "/zed2/zed_node/rgb_raw/image_raw_color"),
             ("~/camera_info", "/zed2/zed_node/rgb_raw/camera_info"),
-        ],
-    )
-
-    zed2_filter = Node(
-        package="pcl_ros",
-        executable="filter_voxel_grid_node",
-        name="zed2_filter_node",
-        namespace="zed2_filter",
-        parameters=[{"leaf_size": 0.005}, {"filter_limit_min": -2.0}],
-        remappings=[
-            ("input", "/zed2/zed_node/point_cloud/cloud_registered"),
         ],
     )
 
@@ -179,28 +155,6 @@ def generate_launch_description():
         ],
     )
 
-    baxter_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory("baxter_moveit_ros2"),
-                "launch",
-                "servo_server.launch.py",
-            )
-        ),
-    )
-
-    baxter_pose_tracker = Node(
-        package="baxter_6dof_vr",
-        executable="baxter_pose_tracker",
-        name="baxter_pose_tracker",
-    )
-
-    robot_tf = Node(
-        package="tf2_ros",
-        executable="static_transform_publisher",
-        arguments=["0", "0", "0.9", "0", "0", "0", "unity_world", "world"],
-    )
-
     rviz2 = Node(
         package="rviz2",
         executable="rviz2",
@@ -228,14 +182,6 @@ def generate_launch_description():
     ld.add_action(zed2_camera_launch)
     ld.add_action(zed2_apriltag_node)
 
-    # ld.add_action(d435_camera_launch)
-    # ld.add_action(d435_apriltag_node)
-    # ld.add_action(d435_filter)
-
-    ld.add_action(baxter_launch)
-    # ld.add_action(baxter_pose_tracker)
-
-    ld.add_action(robot_tf)
     ld.add_action(rviz2)
     ld.add_action(tcp_node)
 
