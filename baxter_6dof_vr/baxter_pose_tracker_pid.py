@@ -24,6 +24,7 @@ from tf2_ros.transform_listener import TransformListener
 from geometry_msgs.msg import Transform
 from tf2_msgs.msg import TFMessage
 from tf2_geometry_msgs import do_transform_pose
+import transforms3d
 
 
 class PoseFollower(Node):
@@ -51,20 +52,108 @@ class PoseFollower(Node):
         self.pose_frame = "unity_world"  # TODO: Change to param
         self.ee_frame = "right_hand"  # TODO: Change to param
 
+        self.base_tf = None
+
         self.goal_pos = np.array([0.8, -0.2, 0.25])
-        self.current_pos = self.goal_pos
         self.goal_quaternion = np.array([1.0, 0.0, 0.0, 0.0])
+        self.current_pos = self.goal_pos
+        self.current_quaternion = self.goal_quaternion
 
         self.subscription = self.create_subscription(
             Pose, "target_pose", self.listener_callback, 10
         )
         self.subscription  # prevent unused variable warning
-
-        self.timer = self.create_timer(0.1, self.timer_callback)
+        self.timer = self.create_timer(0.03, self.timer_callback)
 
     def timer_callback(self):
+        self.get_ee_pos()
+
+        delta_pos = self.goal_pos - self.current_pos
+        distance = np.linalg.norm(delta_pos)
+        mov = tuple(np.clip(10 * delta_pos, -1, 1))
+        if distance < 0.02:
+            mov = (0, 0, 0)
+
+        current_quat = [
+            self.current_quaternion[3],
+            self.current_quaternion[0],
+            self.current_quaternion[1],
+            self.current_quaternion[2],
+        ]
+        goal_quat = [
+            self.goal_quaternion[3],
+            self.goal_quaternion[0],
+            self.goal_quaternion[1],
+            self.goal_quaternion[2],
+        ]
+        mov_quat = transforms3d.quaternions.qmult(
+            goal_quat, transforms3d.quaternions.qinverse(current_quat)
+        )
+        mov_euler = np.clip(
+            2 * np.array(transforms3d.euler.quat2euler(mov_quat)), -0.9, 0.9
+        )
+        # mov_rot = tuple(mov_euler)
+        print(mov_euler)
+
+        if self.jumping():
+            print("Still jumping")
+
+        else:
+            # if distance < 0.01:
+            #     print("Arrived")
+            # elif 0.01 < distance < 0.2:
+            print("Servoing", mov)
+            self.moveit2_servo.servo(linear=mov, angular=mov_euler)
+
+        print(" ")
+
+    def jump(self, goal_pos, goal_quat):
+        self.moveit2.move_to_pose(
+            position=goal_pos,
+            quat_xyzw=goal_quat,
+            cartesian=True,
+        )
+
+    def jumping(self):
+        return (
+            self.moveit2._MoveIt2__is_motion_requested
+            or self.moveit2._MoveIt2__is_executing
+        )
+
+    def listener_callback(self, msg):
+        if self.base_tf is None:
+            self.get_base_tf()
+
+        pose_base = do_transform_pose(msg, self.base_tf)
+
+        self.goal_pos = np.array(
+            [
+                pose_base.position.x,
+                pose_base.position.y,
+                pose_base.position.z,
+            ]
+        )
+        self.goal_quaternion = np.array(
+            [
+                pose_base.orientation.x,
+                pose_base.orientation.y,
+                pose_base.orientation.z,
+                pose_base.orientation.w,
+            ]
+        )
+
+        self.get_ee_pos()
+
+        delta_pos = self.goal_pos - self.current_pos
+        distance = np.linalg.norm(delta_pos)
+
+        if distance > 0.2 and not self.jumping():
+            print("Starting jump")
+            self.jump(self.goal_pos, self.goal_quaternion)
+
+    def get_ee_pos(self):
         try:
-            base_tf = self.tf_buffer.lookup_transform(
+            ee_tf = self.tf_buffer.lookup_transform(
                 self.frame,
                 self.ee_frame,
                 rclpy.time.Time(),
@@ -72,17 +161,17 @@ class PoseFollower(Node):
 
             self.current_pos = np.array(
                 [
-                    base_tf.transform.translation.x,
-                    base_tf.transform.translation.y,
-                    base_tf.transform.translation.z,
+                    ee_tf.transform.translation.x,
+                    ee_tf.transform.translation.y,
+                    ee_tf.transform.translation.z,
                 ]
             )
             self.current_quaternion = np.array(
                 [
-                    base_tf.transform.rotation.x,
-                    base_tf.transform.rotation.y,
-                    base_tf.transform.rotation.z,
-                    base_tf.transform.rotation.w,
+                    ee_tf.transform.rotation.x,
+                    ee_tf.transform.rotation.y,
+                    ee_tf.transform.rotation.z,
+                    ee_tf.transform.rotation.w,
                 ]
             )
 
@@ -91,64 +180,13 @@ class PoseFollower(Node):
                 f"Could not transform {self.frame} to {self.pose_frame}: {e}"
             )
 
-        delta_pos = self.goal_pos - self.current_pos
-        print(
-            f"current pos: {self.current_pos}, goal pos: {self.goal_pos}, delta pos: {delta_pos}"
-        )
-
-        distance = np.linalg.norm(delta_pos)
-
-        if distance < 0.1:
-            print("Servoing", tuple(np.clip(10 * delta_pos, -1, 1)))
-            self.moveit2_servo.servo(
-                linear=tuple(np.clip(10 * delta_pos, -1, 1)), angular=(0, 0, 0)
-            )
-
-    def listener_callback(self, msg):
+    def get_base_tf(self):
         try:
-            base_tf = self.tf_buffer.lookup_transform(
+            self.base_tf = self.tf_buffer.lookup_transform(
                 self.frame,
                 self.pose_frame,
                 rclpy.time.Time(),
             )
-
-            pose_base = do_transform_pose(msg, base_tf)
-
-            self.goal_pos = np.array(
-                [
-                    pose_base.position.x,
-                    pose_base.position.y,
-                    pose_base.position.z,
-                ]
-            )
-            self.goal_quaternion = np.array(
-                [
-                    pose_base.orientation.x,
-                    pose_base.orientation.y,
-                    pose_base.orientation.z,
-                    pose_base.orientation.w,
-                ]
-            )
-
-            delta_pos = self.goal_pos - self.current_pos
-            distance = np.linalg.norm(delta_pos)
-            print(
-                f"current pos: {self.current_pos}, goal pos: {self.goal_pos}, delta pos: {delta_pos}, distance: {distance}"
-            )
-
-            if distance < 0.1:
-                print("Servoing", np.clip(10 * delta_pos, -1, 1))
-                self.moveit2_servo.servo(
-                    linear=tuple(np.clip(10 * delta_pos, -1, 1)), angular=(0, 0, 0)
-                )
-
-            else:
-                print("jumping")
-                self.moveit2.move_to_pose(
-                    position=self.goal_pos,
-                    quat_xyzw=self.goal_quaternion,
-                    cartesian=True,
-                )
 
         except Exception as e:
             self.get_logger().info(
