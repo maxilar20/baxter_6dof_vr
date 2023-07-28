@@ -16,45 +16,6 @@ import os
 def generate_launch_description():
     ld = LaunchDescription()
 
-    zed_camera_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory("zed_wrapper"), "launch", "zed.launch.py"
-            )
-        ),
-        launch_arguments={"publish_tf": "false", "zed_id": "0"}.items(),
-    )
-
-    zed_apriltag_node = Node(
-        package="apriltag_ros2",
-        executable="apriltag_ros2_continuous_detector_node",
-        name="zed_apriltag_node",
-        parameters=[
-            {"size": 0.75},
-            {"publish_tag_detections_image": True},
-            {"camera_frame_id": "zed_left_camera_frame"},
-            {"camera_base_frame_id": "base_link"},
-            {
-                os.path.join(
-                    get_package_share_directory("apriltag_ros2"),
-                    "config",
-                    "settings.param.yaml",
-                )
-            },
-            {
-                os.path.join(
-                    get_package_share_directory("apriltag_ros2"),
-                    "config",
-                    "tags.param.yaml",
-                )
-            },
-        ],
-        remappings=[
-            ("~/image_rect", "/zed/zed_node/rgb_raw/image_raw_color"),
-            ("~/camera_info", "/zed/zed_node/rgb_raw/camera_info"),
-        ],
-    )
-
     zed2_camera_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
@@ -67,35 +28,128 @@ def generate_launch_description():
         }.items(),
     )
 
-    zed2_apriltag_node = Node(
-        package="apriltag_ros2",
-        executable="apriltag_ros2_continuous_detector_node",
-        name="zed2_apriltag_node",
-        parameters=[
-            {"size": 0.75},
-            {"publish_tag_detections_image": True},
-            {"camera_frame_id": "zed2_left_camera_frame"},
-            {"camera_base_frame_id": "map"},
-            {
-                os.path.join(
-                    get_package_share_directory("apriltag_ros2"),
-                    "config",
-                    "settings.param.yaml",
-                )
-            },
-            {
-                os.path.join(
-                    get_package_share_directory("apriltag_ros2"),
-                    "config",
-                    "tags.param.yaml",
-                )
-            },
-        ],
-        remappings=[
-            ("~/image_rect", "/zed2/zed_node/rgb_raw/image_raw_color"),
-            ("~/camera_info", "/zed2/zed_node/rgb_raw/camera_info"),
+    zed2_tf = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        arguments=[
+            "--frame-id",
+            "table_0",
+            "--child-frame-id",
+            "map",
+            "--x",
+            "0.5297981623017833",
+            "--y",
+            "-0.6792716403394491",
+            "--z",
+            "0.08371118750384102",
+            "--qx",
+            "0.45185206192850896",
+            "--qy",
+            "0.5498215966902548",
+            "--qz",
+            "0.4442062591791017",
+            "--qw",
+            "0.5442487714731586",
         ],
     )
+
+    # zed2_apriltag_node = Node(
+    #     package="apriltag_ros2",
+    #     executable="apriltag_ros2_continuous_detector_node",
+    #     name="zed2_apriltag_node",
+    #     parameters=[
+    #         {"size": 0.75},
+    #         {"publish_tag_detections_image": True},
+    #         {"camera_frame_id": "zed2_left_camera_frame"},
+    #         {"camera_base_frame_id": "map"},
+    #         {
+    #             os.path.join(
+    #                 get_package_share_directory("apriltag_ros2"),
+    #                 "config",
+    #                 "settings.param.yaml",
+    #             )
+    #         },
+    #         {
+    #             os.path.join(
+    #                 get_package_share_directory("apriltag_ros2"),
+    #                 "config",
+    #                 "tags.param.yaml",
+    #             )
+    #         },
+    #     ],
+    #     remappings=[
+    #         ("~/image_rect", "/zed2/zed_node/rgb_raw/image_raw_color"),
+    #         ("~/camera_info", "/zed2/zed_node/rgb_raw/camera_info"),
+    #     ],
+    # )
+
+    zed2i_camera_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("zed_wrapper"), "launch", "zed2i.launch.py"
+            )
+        ),
+        launch_arguments={
+            "publish_tf": "false",
+            "zed_id": "1",
+            "base_frame": "zed2i_base_frame",
+        }.items(),
+    )
+
+    zed2i_tf = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        arguments=[
+            "--frame-id",
+            "table_0",
+            "--child-frame-id",
+            "zed2i_base_frame",
+            "--x",
+            "0.5236425999941225",
+            "--y",
+            "0.446947179243176",
+            "--z",
+            "0.34343314197411295",
+            "--qx",
+            "-0.18097212982700334",
+            "--qy",
+            "0.8263314256176979",
+            "--qz",
+            "-0.34753493241548433",
+            "--qw",
+            "0.4045305106088611",
+        ],
+    )
+
+    # zed2i_apriltag_node = Node(
+    #     package="apriltag_ros2",
+    #     executable="apriltag_ros2_continuous_detector_node",
+    #     name="zed2i_apriltag_node",
+    #     parameters=[
+    #         {"size": 0.75},
+    #         {"publish_tag_detections_image": True},
+    #         {"camera_frame_id": "zed2i_left_camera_frame"},
+    #         {"camera_base_frame_id": "zed2i_base_frame"},
+    #         {
+    #             os.path.join(
+    #                 get_package_share_directory("apriltag_ros2"),
+    #                 "config",
+    #                 "settings.param.yaml",
+    #             )
+    #         },
+    #         {
+    #             os.path.join(
+    #                 get_package_share_directory("apriltag_ros2"),
+    #                 "config",
+    #                 "tags.param.yaml",
+    #             )
+    #         },
+    #     ],
+    #     remappings=[
+    #         ("~/image_rect", "/zed2i/zed_node/rgb_raw/image_raw_color"),
+    #         ("~/camera_info", "/zed2i/zed_node/rgb_raw/camera_info"),
+    #     ],
+    # )
 
     d435_camera_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -155,6 +209,12 @@ def generate_launch_description():
         ],
     )
 
+    table_tf = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        arguments=["0.6", "0", "0.73", "3.1415", "-1.57", "0", "ground", "table_0"],
+    )
+
     rviz2 = Node(
         package="rviz2",
         executable="rviz2",
@@ -176,12 +236,13 @@ def generate_launch_description():
         ],
     )
 
-    # ld.add_action(zed_camera_launch)
-    # ld.add_action(zed_apriltag_node)
-
     ld.add_action(zed2_camera_launch)
-    ld.add_action(zed2_apriltag_node)
+    ld.add_action(zed2_tf)
 
+    ld.add_action(zed2i_camera_launch)
+    ld.add_action(zed2i_tf)
+
+    ld.add_action(table_tf)
     ld.add_action(rviz2)
     ld.add_action(tcp_node)
 

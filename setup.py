@@ -29,7 +29,6 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "pose_to_tf = baxter_6dof_vr.pose_to_tf:main",
             "baxter_pose_tracker = baxter_6dof_vr.baxter_pose_tracker:main",
             "baxter_pose_tracker_pid = baxter_6dof_vr.baxter_pose_tracker_pid:main",
         ],
