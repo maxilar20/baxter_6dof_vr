@@ -9,12 +9,30 @@ from ament_index_python.packages import get_package_share_directory
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 
+from launch.conditions import IfCondition
+from launch.actions import LogInfo, DeclareLaunchArgument
+
+from launch.substitutions import LaunchConfiguration, PythonExpression
+
 
 import os
 
 
 def generate_launch_description():
     ld = LaunchDescription()
+
+    zed2 = LaunchConfiguration("zed2")
+    ld.add_action(
+        DeclareLaunchArgument("zed2", default_value="False"),
+    )
+    zed2i = LaunchConfiguration("zed2i")
+    ld.add_action(
+        DeclareLaunchArgument("zed2i", default_value="True"),
+    )
+    d435 = LaunchConfiguration("d435")
+    ld.add_action(
+        DeclareLaunchArgument("d435", default_value="False"),
+    )
 
     zed2_camera_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -36,6 +54,7 @@ def generate_launch_description():
                 "zed2_runtime.yaml",
             ),
         }.items(),
+        condition=IfCondition(PythonExpression(zed2)),
     )
 
     zed2_tf = Node(
@@ -61,6 +80,7 @@ def generate_launch_description():
             "--qw",
             "0.41653251331595187",
         ],
+        condition=IfCondition(PythonExpression(zed2)),
     )
 
     zed2i_camera_launch = IncludeLaunchDescription(
@@ -75,7 +95,6 @@ def generate_launch_description():
         launch_arguments={
             "camera_model": "zed2i",
             "serial_number": "35710949",
-            "publish_tf": "false",
             "base_frame": "zed2i_base_frame",
             "ros_params_override_path": os.path.join(
                 get_package_share_directory("baxter_6dof_vr"),
@@ -83,31 +102,61 @@ def generate_launch_description():
                 "zed2i_runtime.yaml",
             ),
         }.items(),
+        condition=IfCondition(PythonExpression(zed2i)),
     )
 
-    zed2i_tf = Node(
-        package="tf2_ros",
-        executable="static_transform_publisher",
-        arguments=[
-            "--frame-id",
-            "table_0",
-            "--child-frame-id",
-            "zed2i_base_frame",
-            "--x",
-            "0.5423720330055823",
-            "--y",
-            "0.510149396348734",
-            "--z",
-            "0.447303998733431",
-            "--qx",
-            "-0.17993694448649428",
-            "--qy",
-            "0.8500537405118741",
-            "--qz",
-            "-0.3705726404775456",
-            "--qw",
-            "0.3281878309446213",
+    zed2i_apriltag_node = Node(
+        package="apriltag_ros2",
+        executable="apriltag_ros2_continuous_detector_node",
+        name="zed2i_apriltag_node",
+        parameters=[
+            {"size": 0.75},
+            {"publish_tag_detections_image": False},
+            {"camera_frame_id": "zed2i_left_camera_frame"},
+            {"camera_base_frame_id": "map"},
+            {
+                os.path.join(
+                    get_package_share_directory("apriltag_ros2"),
+                    "config",
+                    "settings.param.yaml",
+                )
+            },
+            {
+                os.path.join(
+                    get_package_share_directory("apriltag_ros2"),
+                    "config",
+                    "tags.param.yaml",
+                )
+            },
         ],
+        remappings=[
+            ("~/image_rect", "/zed2i/zed_node/rgb_raw/image_raw_color"),
+            ("~/camera_info", "/zed2i/zed_node/rgb_raw/camera_info"),
+        ],
+        condition=IfCondition(PythonExpression(zed2i)),
+    )
+
+    zed2i_rgbd_sync = Node(
+        package="rtabmap_sync",
+        executable="rgbd_sync",
+        name="zed2i_rgbd_sync_node",
+        remappings=[
+            ("rgb/image", "/zed2i/zed_node/rgb/image_rect_color"),
+            ("depth/image", "/zed2i/zed_node/depth/depth_registered"),
+            ("rgb/camera_info", "/zed2i/zed_node/rgb/camera_info"),
+        ],
+        condition=IfCondition(PythonExpression(zed2i)),
+    )
+
+    zed2i_pointcloud = Node(
+        package="rtabmap_util",
+        executable="point_cloud_xyzrgb",
+        name="zed2i_pointcloud_node",
+        parameters=[
+            {"voxel_size": 0.0},
+            {"decimation": 10},
+        ],
+        condition=IfCondition(PythonExpression(zed2i)),
     )
 
     d435_camera_launch = IncludeLaunchDescription(
@@ -123,6 +172,7 @@ def generate_launch_description():
             "pointcloud.enable": "true",
             "camera_name": "D435",
         }.items(),
+        condition=IfCondition(PythonExpression(d435)),
     )
 
     d435_apriltag_node = Node(
@@ -153,6 +203,7 @@ def generate_launch_description():
             ("~/image_rect", "/D435/color/image_raw"),
             ("~/camera_info", "/D435/color/camera_info"),
         ],
+        condition=IfCondition(PythonExpression(d435)),
     )
 
     d435_filter = Node(
@@ -166,12 +217,13 @@ def generate_launch_description():
         remappings=[
             ("input", "/D435/depth/color/points"),
         ],
+        condition=IfCondition(PythonExpression(d435)),
     )
 
     table_tf = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
-        arguments=["0.6", "0", "0.73", "3.1415", "-1.57", "0", "ground", "table_0"],
+        arguments=["0.57", "0", "0.73", "3.1415", "-1.57", "0", "ground", "table_0"],
     )
 
     rviz2 = Node(
@@ -191,7 +243,7 @@ def generate_launch_description():
         executable="default_server_endpoint",
         name="tcp_node",
         parameters=[
-            {"ROS_IP": "130.209.252.206"},
+            {"ROS_IP": "130.209.243.167"},
         ],
     )
 
@@ -199,7 +251,13 @@ def generate_launch_description():
     ld.add_action(zed2_tf)
 
     ld.add_action(zed2i_camera_launch)
-    ld.add_action(zed2i_tf)
+    ld.add_action(zed2i_apriltag_node)
+    ld.add_action(zed2i_rgbd_sync)
+    ld.add_action(zed2i_pointcloud)
+
+    ld.add_action(d435_camera_launch)
+    ld.add_action(d435_apriltag_node)
+    ld.add_action(d435_filter)
 
     ld.add_action(table_tf)
     ld.add_action(rviz2)
