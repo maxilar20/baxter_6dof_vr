@@ -153,8 +153,8 @@ def generate_launch_description():
         executable="point_cloud_xyzrgb",
         name="zed2i_pointcloud_node",
         parameters=[
-            {"voxel_size": 0.0},
-            {"decimation": 10},
+            # {"voxel_size": 0.0},
+            # {"decimation": 2},
         ],
         condition=IfCondition(PythonExpression(zed2i)),
     )
